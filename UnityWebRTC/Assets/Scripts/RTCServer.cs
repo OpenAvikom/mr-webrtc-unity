@@ -17,6 +17,10 @@ public class RTCServer : MonoBehaviour
     public bool NeedVideo = true;
     public bool NeedAudio = false;
 
+    public uint VideoWidth = 640;
+    public uint VideoHeight = 400;
+    public uint VideoFps = 30;
+
     async void Start()
     {
         var deviceList = await DeviceVideoTrackSource.GetCaptureDevicesAsync();
@@ -43,12 +47,13 @@ public class RTCServer : MonoBehaviour
             Debug.Log("Opening local webcam...");
             var deviceSettings = new LocalVideoDeviceInitConfig
             {
-                width = 1280,
-                height = 720
+                width = VideoWidth,
+                height = VideoHeight,
+                framerate = VideoFps
             };
             videoTrackSource = await DeviceVideoTrackSource.CreateAsync(deviceSettings);
 
-            Debug.Log("Create local video track...");
+            Debug.Log($"Create local video track... {videoTrackSource}");
             var trackSettings = new LocalVideoTrackInitConfig
             {
                 trackName = "webcam_track"

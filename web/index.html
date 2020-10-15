@@ -9,7 +9,7 @@
         var pc;
         var ws;
 
-        async function start() {
+        async function connect() {
 
             closePeer();
 
@@ -83,9 +83,6 @@
 
             ws.onopen = async function () {
                 console.log("Connection open");
-                // const offer = await pc.createOffer();
-                // await pc.setLocalDescription(offer);
-                // ws.send(JSON.stringify({ 'type': 'sdp', 'offer': offer.sdp }));
             };
         };
 
@@ -104,8 +101,7 @@
     <video controls autoplay="autoplay" id="remoteVideo" width="640" height="480"></video>
 
     <div>
-        <button type="button" class="btn btn-success" onclick="start();">Start</button>
-        <!-- <button type="button" class="btn btn-success" onclick="closePeer();">Close</button> -->
+        <button type="button" class="btn btn-success" onclick="connect();">Connect</button>
     </div>
 
 </body>

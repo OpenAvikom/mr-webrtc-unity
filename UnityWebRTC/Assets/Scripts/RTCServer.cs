@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Microsoft.MixedReality.WebRTC;
+using System.Threading.Tasks;
 
 public class RTCServer : MonoBehaviour
 {
@@ -21,6 +22,8 @@ public class RTCServer : MonoBehaviour
     public uint VideoHeight = 400;
     public uint VideoFps = 30;
 
+    public bool UseRemoteStun = false;
+
     async void Start()
     {
         var deviceList = await DeviceVideoTrackSource.GetCaptureDevicesAsync();
@@ -33,9 +36,15 @@ public class RTCServer : MonoBehaviour
 
         // Setup signaling
         Debug.Log("Starting signaling...");
-        signaler = new WebSocketSignaler(9999);
+        signaler = new TCPSignaler(9998);
         signaler.ClientConnected += OnClientConnected;
-        await signaler.Start();
+        signaler.ClientDisconnected += OnClientDisconnected;
+        if (UseRemoteStun)
+        {
+            signaler.IceServers.Add(new IceServer { Urls = { "stun:stun.l.google.com:19302" } });
+        }
+
+        signaler.Start();
     }
 
     async void OnClientConnected()
@@ -51,6 +60,7 @@ public class RTCServer : MonoBehaviour
                 height = VideoHeight,
                 framerate = VideoFps
             };
+
             videoTrackSource = await DeviceVideoTrackSource.CreateAsync(deviceSettings);
 
             Debug.Log($"Create local video track... {videoTrackSource}");
@@ -83,8 +93,6 @@ public class RTCServer : MonoBehaviour
         }
 
         // Start peer connection
-        pc.Connected += () => { Debug.Log("PeerConnection: connected."); };
-        pc.IceStateChanged += (IceConnectionState newState) => { Debug.Log($"ICE state: {newState}"); };
         int numFrames = 0;
         pc.VideoTrackAdded += (RemoteVideoTrack track) =>
         {
@@ -98,18 +106,24 @@ public class RTCServer : MonoBehaviour
                 }
             };
         };
+        // we need a short delay here for the video stream to settle...
+        // I assume my Logitech webcam is sending some garbage frames in the beginning.
+        await Task.Delay(200);
         pc.CreateOffer();
-        Debug.Log("Waiting for offer from remote peer...");
+        Debug.Log("Send offer to remote peer");
     }
 
-    // Update is called once per frame
-
-    void OnDisable()
+    public void OnClientDisconnected()
     {
         localAudioTrack?.Dispose();
         localVideoTrack?.Dispose();
         audioTrackSource?.Dispose();
         videoTrackSource?.Dispose();
+    }
+
+    void OnDisable()
+    {
+        OnClientDisconnected();
         signaler?.Stop();
         Debug.Log("Program terminated.");
     }

@@ -244,6 +244,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   NeedVideo: 1
   NeedAudio: 0
+  VideoWidth: 640
+  VideoHeight: 360
+  VideoFps: 30
+  UseRemoteStun: 0
 --- !u!4 &825227016
 Transform:
   m_ObjectHideFlags: 0

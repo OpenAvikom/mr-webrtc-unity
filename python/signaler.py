@@ -1,9 +1,7 @@
-from aiortc.contrib.signaling import TcpSocketSignaling, candidate_to_sdp, candidate_from_sdp
+from aiortc.contrib.signaling import TcpSocketSignaling, candidate_to_sdp, candidate_from_sdp, BYE
 from aiortc import RTCIceCandidate, RTCSessionDescription
 import json
 import asyncio
-
-BYE = object()
 
 
 def unity_object_to_string(obj):

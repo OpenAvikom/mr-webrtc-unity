@@ -33,9 +33,7 @@ public class TCPSignaler : Signaler
     public TCPSignaler(int port)
     {
         _serverPort = port;
-        _server = new TcpListener(IPAddress.Any, _serverPort);
-        _server.Start();
-        Debug.Log("Created tcp server;");
+        ClientDisconnected += OnConnectionClosed;
     }
 
     public void WaitForTCPConnection()
@@ -53,9 +51,20 @@ public class TCPSignaler : Signaler
         _ = Task.Factory.StartNew(WriteOutgoingMessages, TaskCreationOptions.LongRunning);
     }
 
-    public async override Task Start()
+    public void OnConnectionClosed()
     {
-        await base.Start();
+        _streamReader?.Dispose();
+        _streamWriter?.Dispose();
+        _stream?.Dispose();
+        _client?.Close();
+        _ = Task.Factory.StartNew(WaitForTCPConnection, TaskCreationOptions.LongRunning);
+    }
+
+    public override void Start()
+    {
+        _server = new TcpListener(IPAddress.Any, _serverPort);
+        _server.Start();
+        Debug.Log("Created tcp server;");
         _ = Task.Factory.StartNew(WaitForTCPConnection, TaskCreationOptions.LongRunning);
     }
 
@@ -63,12 +72,7 @@ public class TCPSignaler : Signaler
     {
         _outgoingMessages.CompleteAdding();
         _outgoingMessages.Dispose();
-        _streamReader.Dispose();
-        _streamWriter.Dispose();
-        _stream.Dispose();
         _server.Stop();
-        _client.Close();
-        base.Stop();
     }
 
     private void ProcessIncomingMessagesQueue()

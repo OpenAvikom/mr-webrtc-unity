@@ -10,6 +10,7 @@ public class WebRtcSession : WebSocketBehavior
 
     public event System.Action<string> MessageReceived;
     public event System.Action SocketOpen;
+    public event System.Action SocketClosed;
 
     protected override void OnMessage(MessageEventArgs e)
     {
@@ -18,7 +19,14 @@ public class WebRtcSession : WebSocketBehavior
 
     protected override void OnOpen()
     {
+        base.OnOpen();
         SocketOpen?.Invoke();
+    }
+
+    protected override void OnClose(CloseEventArgs e)
+    {
+        base.OnClose(e);
+        SocketClosed?.Invoke();
     }
 }
 
@@ -35,17 +43,33 @@ public class WebSocketSignaler : Signaler
         _serverPort = port;
     }
 
-    public async override Task Start()
+    public override void Start()
     {
-        await base.Start();
         _server = new WebSocketServer(IPAddress.Any, _serverPort, true);
         var path = Application.streamingAssetsPath + "/Certs/localhost.pfx";
         _server.SslConfiguration.ServerCertificate = new System.Security.Cryptography.X509Certificates.X509Certificate2(path);
         _server.SslConfiguration.CheckCertificateRevocation = false;
-        _session = new WebRtcSession();
-        _session.MessageReceived += MessageReceived;
-        _session.SocketOpen += OnSocketOpen;
-        _server.AddWebSocketService<WebRtcSession>("/", () => _session);
+        _server.AddWebSocketService<WebRtcSession>("/", () =>
+        {
+            Debug.Log("Incoming connection ...");
+            if (_session != null)
+            {
+                return null;
+            }
+            _session = new WebRtcSession();
+            _session.MessageReceived += MessageReceived;
+            _session.SocketOpen += () =>
+            {
+                Debug.Log("Socket open!");
+                ClientConnected?.Invoke();
+            };
+            _session.SocketClosed += () =>
+            {
+                Debug.Log("Socket closed!");
+                _session = null;
+            };
+            return _session;
+        });
         _server.Start();
         Debug.Log($"Waiting for browser web socket connection to {_server.Address}:{_server.Port}...");
     }
@@ -55,11 +79,6 @@ public class WebSocketSignaler : Signaler
         _session.Context.WebSocket.Send(JsonConvert.SerializeObject(json, Formatting.None));
     }
 
-    private void OnSocketOpen()
-    {
-        Debug.Log("Socket open!");
-        ClientConnected?.Invoke();
-    }
     private void MessageReceived(string msg)
     {
         JObject json = JObject.Parse(msg);
@@ -70,7 +89,6 @@ public class WebSocketSignaler : Signaler
     public override void Stop()
     {
         _server.Stop();
-        base.Stop();
     }
 }
 

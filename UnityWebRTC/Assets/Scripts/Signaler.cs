@@ -20,39 +20,56 @@ public abstract class Signaler
     public PeerConnection.LocalSdpReadyToSendDelegate SdpMessageReceived;
 
     public System.Action ClientConnected;
+    public System.Action ClientDisconnected;
+    public readonly List<IceServer> IceServers = new List<IceServer> { };
 
     protected abstract void SendMessage(JObject json);
+    public abstract void Start();
+    public abstract void Stop();
+
 
     public Signaler()
     {
         SdpMessageReceived += ProcessSdpMessage;
+        ClientConnected += SetUpPeer;
+        ClientDisconnected += TearDownPeer;
     }
 
-    public async virtual Task Start()
+    private async void SetUpPeer()
     {
         _peerConnection = new PeerConnection();
-        // Initialize the connection with a STUN server to allow remote access
+
         var config = new PeerConnectionConfiguration
         {
-            IceServers = new List<IceServer> {
-                            new IceServer{ Urls = { "stun:stun.l.google.com:19302" } }
-                        }
+            IceServers = IceServers
         };
+
         await _peerConnection.InitializeAsync(config);
         PeerConnection.LocalSdpReadytoSend += PeerConnection_LocalSdpReadytoSend;
         PeerConnection.IceCandidateReadytoSend += PeerConnection_IceCandidateReadytoSend;
+        PeerConnection.Connected += () => { Debug.Log("PeerConnection: connected."); };
+        PeerConnection.IceStateChanged += (IceConnectionState newState) =>
+        {
+            Debug.Log($"ICE state: {newState}");
+            if (newState == IceConnectionState.Disconnected)
+            {
+                // we cannot dispose peer connection from WITHIN a callback
+                // start thread and to it later (by emitting ClientDisconnected event)
+                Task.Factory.StartNew(async () => { await Task.Delay(100); ClientDisconnected?.Invoke(); });
+            };
+        };
     }
 
-    public virtual void Stop()
+    private void TearDownPeer()
     {
-        PeerConnection.LocalSdpReadytoSend -= PeerConnection_LocalSdpReadytoSend;
-        PeerConnection.IceCandidateReadytoSend -= PeerConnection_IceCandidateReadytoSend;
+        Debug.Log("Dispose PeerConnection.");
         _peerConnection?.Dispose();
     }
 
     private void PeerConnection_IceCandidateReadytoSend(IceCandidate candidate)
     {
         // See ProcessIncomingMessages() for the message format
+
 
         JObject iceCandidate = new JObject {
                         { "type", "ice" },

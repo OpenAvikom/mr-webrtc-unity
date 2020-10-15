@@ -75,6 +75,8 @@ UWP/
 *.privkey
 *.pfx
 *.pfx.meta
+*.pem
+*.pem.meta
 
 # Do NOT ignore MRTK DotNetAdapter
 !DotNetAdapter.csproj

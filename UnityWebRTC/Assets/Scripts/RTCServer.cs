@@ -1,11 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using Microsoft.MixedReality.WebRTC;
 
 public class RTCServer : MonoBehaviour
 {
-    TCPSignaler signaler;
+    Signaler signaler;
     Transceiver audioTransceiver = null;
     Transceiver videoTransceiver = null;
     AudioTrackSource audioTrackSource = null;
@@ -29,38 +27,16 @@ public class RTCServer : MonoBehaviour
             Debug.Log($"Found webcam {device.name} (id: {device.id})");
         }
 
-        pc = new PeerConnection();
-
-        // Initialize the connection with a STUN server to allow remote access
-        var config = new PeerConnectionConfiguration
-        {
-            IceServers = new List<IceServer> {
-                            new IceServer{ Urls = { "stun:stun.l.google.com:19302" } }
-                        }
-        };
-        await pc.InitializeAsync(config);
-        Debug.Log("Peer connection initialized.");
-
         // Setup signaling
         Debug.Log("Starting signaling...");
-        signaler = new TCPSignaler(pc, "0.0.0.0", 9999);
-        signaler.SdpMessageReceived += async (SdpMessage message) =>
-        {
-            await pc.SetRemoteDescriptionAsync(message);
-            if (message.Type == SdpMessageType.Offer)
-            {
-                pc.CreateAnswer();
-            }
-        };
-        signaler.IceCandidateReceived += (IceCandidate candidate) =>
-        {
-            pc.AddIceCandidate(candidate);
-        };
-        signaler.Start(OnClientConnected);
+        signaler = new WebSocketSignaler(9999);
+        signaler.ClientConnected += OnClientConnected;
+        await signaler.Start();
     }
 
     async void OnClientConnected()
     {
+        var pc = signaler.PeerConnection;
         // Record video from local webcam, and send to remote peer
         if (NeedVideo)
         {
@@ -130,7 +106,6 @@ public class RTCServer : MonoBehaviour
         audioTrackSource?.Dispose();
         videoTrackSource?.Dispose();
         signaler?.Stop();
-        pc?.Dispose();
         Debug.Log("Program terminated.");
     }
 }

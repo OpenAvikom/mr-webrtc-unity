@@ -6,6 +6,7 @@ from collections import deque
 
 import cv2
 import numpy
+import logging
 
 from aiortc import (
     RTCIceCandidate,
@@ -17,6 +18,9 @@ from aiortc.contrib.signaling import BYE, add_signaling_arguments, create_signal
 
 from receiver import OpenCVReceiver
 from signaler import UnityTcpSignaling
+
+_LOGGER = logging.getLogger("mr.webrtc.python")
+_LOGGER.addHandler(logging.NullHandler())
 
 
 async def run(pc, player, receiver, signaling, role, queue):
@@ -31,17 +35,12 @@ async def run(pc, player, receiver, signaling, role, queue):
 
     @pc.on("track")
     def on_track(track):
-        print("Receiving %s" % track.kind)
+        _LOGGER.info("Receiving %s" % track.kind)
         receiver.addTrack(track)
 
     # connect signaling
+    _LOGGER.info("Waiting for signaler connection ...")
     await signaling.connect()
-
-    # if role == "offer":
-    #     # send offer
-    #     add_tracks()
-    #     await pc.setLocalDescription(await pc.createOffer())
-    #     await signaling.send(pc.localDescription)
 
     # consume signaling
     while True:
@@ -84,14 +83,22 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Video stream from the command line")
     parser.add_argument("--verbose", "-v", action="count")
+    parser.add_argument("--host", "-ip", help="ip address of signaler/sender instance")
+    parser.add_argument("--port", "-p", help="port of signaler/sender instance")
     add_signaling_arguments(parser)
     args = parser.parse_args()
 
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.WARN)
+        _LOGGER.setLevel(level=logging.INFO)
+
+    host = args.host or "localhost"
+    port = args.port or 9999
 
     # create signaling and peer connection
-    signaling = UnityTcpSignaling(host="129.70.145.122", port=9999)
+    signaling = UnityTcpSignaling(host=host, port=port)
     pc = RTCPeerConnection()
 
     player = None
@@ -114,6 +121,7 @@ if __name__ == "__main__":
         pass
     finally:
         # cleanup
+        _LOGGER.info("Shutting down receiver and peer connection.")
         loop.run_until_complete(receiver.stop())
         loop.run_until_complete(signaling.close())
         loop.run_until_complete(pc.close())

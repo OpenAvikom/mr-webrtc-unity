@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+
+<head>
+    <meta charset="UTF-8">
+
+    <script type="text/javascript">
+
+        const url = "wss://localhost:9999/"
+        var pc;
+        var ws;
+
+        async function start() {
+
+            closePeer();
+
+            const remoteVideo = document.getElementById('remoteVideo');
+
+            remoteVideo.addEventListener('loadedmetadata', function () {
+                console.log(`Remote video videoWidth: ${this.videoWidth}px,  videoHeight: ${this.videoHeight}px`);
+            });
+
+            remoteVideo.addEventListener('resize', () => {
+                console.log(`Remote video size changed to ${remoteVideo.videoWidth}x${remoteVideo.videoHeight}`);
+                // We'll use the first onsize callback as an indication that video has started
+                // playing out.
+                if (startTime) {
+                    const elapsedTime = window.performance.now() - startTime;
+                    console.log('Setup time: ' + elapsedTime.toFixed(3) + 'ms');
+                    startTime = null;
+                }
+            });
+
+            console.log("Connecting ...")
+
+            function gotRemoteStream(e) {
+                if (e.streams.length > 0) {
+                    if (remoteVideo.srcObject !== e.streams[0]) {
+                        remoteVideo.srcObject = e.streams[0];
+                        console.log('received remote stream');
+                    }
+                } else {
+                    console.log(`No valid stream received.`);
+                }
+            }
+
+            ws = new WebSocket(url, []);
+
+            ws.onmessage = async function (evt) {
+                let obj = JSON.parse(evt.data);
+                if (obj['type'] == 'ice') {
+                    // console.log("remote ice candidate: " + obj['candidate']);
+                    pc.addIceCandidate({ candidate: obj['candidate'], sdpMid: obj['sdpMid'], sdpMLineIndex: obj['sdpMLineIndex'] });
+                }
+                else if (obj.offer) {
+                    console.log("received offer ...")
+                    console.log(obj);
+                    pc = new RTCPeerConnection();
+
+                    pc.addEventListener("icegatheringstatechange", (ev) => {
+                        console.log('icegatheringstatechange state: ' + ev.target.iceGatheringState);
+                        console.log(ev);
+                    }, false);
+
+                    pc.addEventListener("icecandidate", (ev) => {
+                        if (ev.candidate != null) {
+                            // console.log(ev.candidate);
+                            ws.send(JSON.stringify({
+                                'type': 'ice',
+                                'candidate': ev.candidate.candidate,
+                                'sdpMLineindex': ev.candidate.sdpMLineIndex,
+                                'sdpMid': ev.candidate.sdpMid
+                            }));
+                        }
+                    }, false);
+
+                    pc.addEventListener('track', gotRemoteStream);
+                    await pc.setRemoteDescription(new RTCSessionDescription({ type: "offer", sdp: obj['offer'] }))
+                    const answer = await pc.createAnswer()
+                    await pc.setLocalDescription(new RTCSessionDescription(answer));
+                    ws.send(JSON.stringify({ type: "sdp", answer: answer.sdp }));
+                    console.log("answer send")
+                }
+                else if (obj.answer) {
+                    console.log("answer sdp: " + obj.answer);
+                    await pc.setRemoteDescription(new RTCSessionDescription({ type: "answer", sdp: obj.answer }))
+                } else {
+                    console.log("unknown message: ", obj)
+                }
+            };
+
+            ws.onopen = async function () {
+                console.log("Connection open");
+                // const offer = await pc.createOffer();
+                // await pc.setLocalDescription(offer);
+                // ws.send(JSON.stringify({ 'type': 'sdp', 'offer': offer.sdp }));
+            };
+        };
+
+        function closePeer() {
+            console.log("close peer");
+            if (pc != null) {
+                pc.close();
+            }
+        };
+
+    </script>
+</head>
+
+<body>
+
+    <video controls autoplay="autoplay" id="remoteVideo" width="640" height="480"></video>
+
+    <div>
+        <button type="button" class="btn btn-success" onclick="start();">Start</button>
+        <!-- <button type="button" class="btn btn-success" onclick="closePeer();">Close</button> -->
+    </div>
+
+</body>

@@ -5,12 +5,33 @@ using Newtonsoft.Json.Linq;
 using WebSocketSharp;
 using WebSocketSharp.Server;
 using UnityEngine;
+using System.Threading;
+
 public class WebRtcSession : WebSocketBehavior
 {
 
     public event System.Action<string> MessageReceived;
     public event System.Action SocketOpen;
     public event System.Action SocketClosed;
+    public event System.Action<string> ConnectionError;
+
+    private Task _timeout;
+    private bool _connected = false;
+
+    private void TimeoutConnection()
+    {
+        Thread.Sleep(500);
+        if (!_connected)
+        {
+            Error("Client did not open socket in 500 ms.", new System.TimeoutException("Client did not open socket in 500 ms."));
+        }
+    }
+
+    public WebRtcSession() : base()
+    {
+        // if the socket connection isn't opened after 500ms something is wrong and we will close the socket.
+        _timeout = Task.Factory.StartNew(TimeoutConnection, TaskCreationOptions.LongRunning);
+    }
 
     protected override void OnMessage(MessageEventArgs e)
     {
@@ -19,15 +40,24 @@ public class WebRtcSession : WebSocketBehavior
 
     protected override void OnOpen()
     {
+        _connected = true;
+        // Debug.Log("OnOpenEvent");
         base.OnOpen();
         SocketOpen?.Invoke();
     }
 
     protected override void OnClose(CloseEventArgs e)
     {
+        Debug.Log("OnCloneEvent");
         base.OnClose(e);
         SocketClosed?.Invoke();
     }
+
+    protected override void OnError(ErrorEventArgs e)
+    {
+        ConnectionError?.Invoke(e.Message);
+    }
+
 }
 
 public class WebSocketSignaler : Signaler
@@ -54,6 +84,7 @@ public class WebSocketSignaler : Signaler
             Debug.Log("Incoming connection ...");
             if (_session != null)
             {
+                Debug.Log("Another session is running. Ignore request");
                 return null;
             }
             _session = new WebRtcSession();
@@ -66,6 +97,14 @@ public class WebSocketSignaler : Signaler
             _session.SocketClosed += () =>
             {
                 Debug.Log("Socket closed!");
+                _session = null;
+            };
+            _session.ConnectionError += (errorMessage) =>
+            {
+                Debug.LogWarning(errorMessage);
+                _session.Context.WebSocket.Close();
+                // OnClose is only triggered when the connection was established before
+                // unsetting _session in case SocketClosed was not fired. 
                 _session = null;
             };
             return _session;

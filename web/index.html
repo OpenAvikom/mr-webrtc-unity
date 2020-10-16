@@ -5,7 +5,6 @@
 
     <script type="text/javascript">
 
-        const url = "wss://localhost:9999/"
         var pc;
         var ws;
 
@@ -36,7 +35,8 @@
                 }
             }
 
-            ws = new WebSocket(url, []);
+            const url = document.getElementById('remoteAddress').value;
+            ws = new WebSocket(`wss:\\${url}`, []);
 
             ws.onmessage = async function (evt) {
                 let obj = JSON.parse(evt.data);
@@ -98,10 +98,13 @@
 
 <body>
 
-    <video controls autoplay="autoplay" id="remoteVideo" width="640" height="480"></video>
+    <video autoplay="autoplay" id="remoteVideo" width="640" height="480"></video>
 
     <div>
         <button type="button" class="btn btn-success" onclick="connect();">Connect</button>
+    </div>
+    <div>
+        Remote Address: <input id="remoteAddress" type="text" size="20" value="localhost:8888" />
     </div>
 
 </body>

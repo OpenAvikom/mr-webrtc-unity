@@ -247,6 +247,8 @@ MonoBehaviour:
   VideoWidth: 640
   VideoHeight: 360
   VideoFps: 30
+  Port: 8888
+  ConnectionType: 1
   UseRemoteStun: 0
 --- !u!4 &825227016
 Transform:

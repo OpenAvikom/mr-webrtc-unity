@@ -33,6 +33,12 @@ MonoBehaviour:
     m_Scopes:
     - jillejr
     m_IsDefault: 0
+  - m_Id: scoped:MS Build for Unity
+    m_Name: MS Build for Unity
+    m_Url: https://pkgs.dev.azure.com/UnityDeveloperTools/MSBuildForUnity/_packaging/UnityDeveloperTools/npm/registry
+    m_Scopes:
+    - com.microsoft
+    m_IsDefault: 0
   m_UserSelectedRegistryName: 
   m_UserAddingNewScopedRegistry: 0
   m_RegistryInfoDraft:

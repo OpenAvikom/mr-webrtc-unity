@@ -75,6 +75,8 @@ UWP/
 *.privkey
 *.pfx
 *.pfx.meta
+*.pfx.bin
+*.pfx.bin.meta
 *.pem
 *.pem.meta
 
@@ -84,3 +86,12 @@ UWP/
 # Python
 
 *.pyc
+
+# MSBuild 
+
+*/[Aa]ssets/Dependencies
+*/MSBuild
+*.csproj.meta
+NuGet.config
+NuGet.config.meta
+MSBuildForUnity.Common.props

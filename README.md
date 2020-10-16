@@ -4,4 +4,4 @@ This project uses the [Microsoft Mixed Reality Toolkit (MRTK)](https://github.co
 
 ## Important remark
 
-This is an example and test project to illustrate how WebRTC can be used to stream video captures from a webcam/HoloLens to a browser or Python client. Its sole purpose is illustration and by no means claim functional completeness. Future updates in MR-WebRTC or MRTK might break it! **Constant maintenance is not provided!** Feel free to open Pull Requests to improve robustness, versatility and flexibility of the shown code samples.
+This is an example and test project to illustrate how WebRTC can be used to stream video captures from a webcam/HoloLens to a browser or Python client. Its sole purpose is illustration and by no means claim functional completeness. Future updates in MR-WebRTC or MRTK might break it! **Constant maintenance is not provided!** Feel free to open Pull Requests to improve robustness, comprehensibility, versatility and flexibility of the shown code samples and documentation. 

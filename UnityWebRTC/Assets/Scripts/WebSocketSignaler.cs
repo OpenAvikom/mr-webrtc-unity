@@ -23,7 +23,7 @@ public class WebRtcSession : WebSocketBehavior
         Thread.Sleep(500);
         if (!_connected)
         {
-            Error("Client did not open socket in 500 ms.", new System.TimeoutException("Client did not open socket in 500 ms."));
+            ConnectionError?.Invoke("Client did not open socket in 500 ms.");
         }
     }
 
@@ -53,11 +53,6 @@ public class WebRtcSession : WebSocketBehavior
         SocketClosed?.Invoke();
     }
 
-    protected override void OnError(ErrorEventArgs e)
-    {
-        ConnectionError?.Invoke(e.Message);
-    }
-
 }
 
 public class WebSocketSignaler : Signaler
@@ -76,38 +71,38 @@ public class WebSocketSignaler : Signaler
     public override void Start()
     {
         _server = new WebSocketServer(IPAddress.Any, _serverPort, true);
-        var path = Application.streamingAssetsPath + "/Certs/localhost.pfx";
-        _server.SslConfiguration.ServerCertificate = new System.Security.Cryptography.X509Certificates.X509Certificate2(path);
+        var path = System.IO.Path.Combine(Application.streamingAssetsPath, "Certs", "localhost.pfx.bin");
+        byte[] content = UnityEngine.Windows.File.ReadAllBytes(path);
+        _server.SslConfiguration.ServerCertificate = new System.Security.Cryptography.X509Certificates.X509Certificate2(content);
         _server.SslConfiguration.CheckCertificateRevocation = false;
-        _server.AddWebSocketService<WebRtcSession>("/", () =>
+        _server.AddWebSocketService<WebRtcSession>("/", newSession =>
         {
             Debug.Log("Incoming connection ...");
             if (_session != null)
             {
                 Debug.Log("Another session is running. Ignore request");
-                return null;
+                return;
             }
-            _session = new WebRtcSession();
-            _session.MessageReceived += MessageReceived;
-            _session.SocketOpen += () =>
+            newSession.MessageReceived += MessageReceived;
+            newSession.SocketOpen += () =>
             {
                 Debug.Log("Socket open!");
                 ClientConnected?.Invoke();
             };
-            _session.SocketClosed += () =>
+            newSession.SocketClosed += () =>
             {
                 Debug.Log("Socket closed!");
                 _session = null;
             };
-            _session.ConnectionError += (errorMessage) =>
+            newSession.ConnectionError += (errorMessage) =>
             {
                 Debug.LogWarning(errorMessage);
-                _session.Context.WebSocket.Close();
+                newSession.Context.WebSocket.Close();
                 // OnClose is only triggered when the connection was established before
                 // unsetting _session in case SocketClosed was not fired. 
                 _session = null;
             };
-            return _session;
+            _session = newSession;
         });
         _server.Start();
         Debug.Log($"Waiting for browser web socket connection to {_server.Address}:{_server.Port}...");

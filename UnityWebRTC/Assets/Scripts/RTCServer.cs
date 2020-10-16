@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using Microsoft.MixedReality.WebRTC;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 public class RTCServer : MonoBehaviour
 {
@@ -12,8 +13,7 @@ public class RTCServer : MonoBehaviour
     LocalAudioTrack localAudioTrack = null;
     LocalVideoTrack localVideoTrack = null;
 
-    PeerConnection pc = null;
-    // Start is called before the first frame update
+    IReadOnlyList<VideoCaptureDevice> deviceList = null;
 
     public bool NeedVideo = true;
     public bool NeedAudio = false;
@@ -21,6 +21,7 @@ public class RTCServer : MonoBehaviour
     public uint VideoWidth = 640;
     public uint VideoHeight = 400;
     public uint VideoFps = 30;
+    public string VideoProfileId = "";
 
     public int Port = 9999;
     public SignalerType ConnectionType = SignalerType.TCP;
@@ -29,12 +30,32 @@ public class RTCServer : MonoBehaviour
 
     async void Start()
     {
-        var deviceList = await DeviceVideoTrackSource.GetCaptureDevicesAsync();
-
-        // For example, print them to the standard output
+        deviceList = await DeviceVideoTrackSource.GetCaptureDevicesAsync();
+        Debug.Log($"Found {deviceList.Count} devices.");
         foreach (var device in deviceList)
         {
-            Debug.Log($"Found webcam {device.name} (id: {device.id})");
+            Debug.Log($"Found webcam {device.name} (id: {device.id}):");
+            var profiles = await DeviceVideoTrackSource.GetCaptureProfilesAsync(device.id);
+            if (profiles.Count > 0)
+            {
+                foreach (var profile in profiles)
+                {
+                    Debug.Log($"+ Profile '{profile.uniqueId}'");
+                    var configs = await DeviceVideoTrackSource.GetCaptureFormatsAsync(device.id, profile.uniqueId);
+                    foreach (var config in configs)
+                    {
+                        Debug.Log($"  - {config.width}x{config.height}@{config.framerate}");
+                    }
+                }
+            }
+            else
+            {
+                var configs = await DeviceVideoTrackSource.GetCaptureFormatsAsync(device.id);
+                foreach (var config in configs)
+                {
+                    Debug.Log($"- {config.width}x{config.height}@{config.framerate}");
+                }
+            }
         }
 
         // Setup signaling
@@ -65,14 +86,23 @@ public class RTCServer : MonoBehaviour
         // Record video from local webcam, and send to remote peer
         if (NeedVideo)
         {
-            Debug.Log("Opening local webcam...");
+            // For example, print them to the standard output
+
             var deviceSettings = new LocalVideoDeviceInitConfig
             {
                 width = VideoWidth,
                 height = VideoHeight,
-                framerate = VideoFps
             };
+            if (VideoFps > 0)
+            {
+                deviceSettings.framerate = VideoFps;
+            }
+            if (VideoProfileId.Length > 0)
+            {
+                deviceSettings.videoProfileId = VideoProfileId;
+            }
 
+            Debug.Log($"Attempt to grab Camera - {deviceSettings.videoProfileId}: {deviceSettings.width}x{deviceSettings.height}@{deviceSettings.framerate}fps");
             videoTrackSource = await DeviceVideoTrackSource.CreateAsync(deviceSettings);
 
             Debug.Log($"Create local video track... {videoTrackSource}");

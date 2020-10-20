@@ -1,5 +1,7 @@
 # UnityWebRTC
 
+This folder contains the preconfigured Unity project which can be opened with Unity (or added via UnityHub). Open the scene `Scenes/SignalerExample`, check the `Launcher` GameObject and the attached `RTCServer` component to configure the video stream resolution and signaler. This should be all that is needed to test it in the Unity Editor. Building and export requires you to change the build target in the build settings from Standalone to Universal Windows Platform.
+
 This should not be confused with the official [WebRTC for Unity](https://github.com/Unity-Technologies/com.unity.webrtc). The project uses [Microsoft Mixed Reality Toolkit (MRTK)](https://github.com/microsoft/MixedRealityToolkit-Unity) and [Microsoft Mixed Reality WebRTC](https://github.com/microsoft/MixedReality-WebRTC) which are configured as UPM packages. Additionally, the project includes a `WebSocketSharp` DLL in the `Assets/Plugin` folder for the `WebSocketSignaler`
 
 ## Requirements for WebSocketSignaler

@@ -9,7 +9,8 @@
 */[Bb]uilds/
 */[Ll]ogs/
 */[Mm]emoryCaptures/
-*/[Pp]ackages
+!*/[Pp]ackages
+*/[Pp]ackages/*
 !*/[Pp]ackages/manifest.json
 
 # Never ignore Asset meta data

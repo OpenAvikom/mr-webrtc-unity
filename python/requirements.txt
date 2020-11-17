@@ -1,2 +1,2 @@
-aiortc
-opencv
+aiortc>=1.0
+opencv-python

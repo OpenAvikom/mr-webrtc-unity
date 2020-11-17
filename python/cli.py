@@ -72,7 +72,7 @@ async def run(pc, player, receiver, signaling, role, queue):
                 await pc.setLocalDescription(await pc.createAnswer())
                 await signaling.send(pc.localDescription)
         elif isinstance(obj, RTCIceCandidate):
-            pc.addIceCandidate(obj)
+            await pc.addIceCandidate(obj)
         elif obj is BYE:
             print("Exiting")
             break
@@ -95,7 +95,7 @@ if __name__ == "__main__":
         _LOGGER.setLevel(level=logging.INFO)
 
     host = args.host or "localhost"
-    port = args.port or 9999
+    port = args.port or 9095
 
     # create signaling and peer connection
     signaling = UnityTcpSignaling(host=host, port=port)

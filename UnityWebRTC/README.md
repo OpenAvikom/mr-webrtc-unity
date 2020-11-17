@@ -1,6 +1,6 @@
 # UnityWebRTC
 
-This should not be confused with the official [WebRTC for Unity](https://github.com/Unity-Technologies/com.unity.webrtc). The project uses [Microsoft Mixed Reality Toolkit (MRTK)](https://github.com/microsoft/MixedRealityToolkit-Unity) and [Microsoft Mixed Reality WebRTC](https://github.com/microsoft/MixedReality-WebRTC) which are configured as UPM packages. Additionally, the project includes a `WebSocketSharp` DLL in the `Assets/Plugin` folder for the `WebSocketSignaler`
+This should not be confused with the official [WebRTC for Unity](https://github.com/Unity-Technologies/com.unity.webrtc). The project uses [Microsoft Mixed Reality Toolkit (MRTK)](https://github.com/microsoft/MixedRealityToolkit-Unity) and [Microsoft Mixed Reality WebRTC](https://github.com/microsoft/MixedReality-WebRTC) which are configured as UPM packages. Additionally, the project includes [WebSocketSharp](https://github.com/sta/websocket-sharp) source code in the `Assets/WebSocketSharp` folder.
 
 ## Requirements for WebSocketSignaler
 
